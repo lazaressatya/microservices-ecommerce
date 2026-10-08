@@ -1,0 +1,316 @@
+services:
+
+  # ==========================================
+  # USER SERVICE
+  # ==========================================
+
+  user-service:
+    image: microservices/user-service:latest
+
+    build:
+      context: ./services/user-service
+
+    container_name: user-service
+
+    environment:
+      PORT: 3001
+      MONGODB_URI: mongodb://user-mongodb:27017/usersdb
+
+    ports:
+      - "3001:3001"
+
+    depends_on:
+      - user-mongodb
+
+    networks:
+      - microservices
+
+
+  user-mongodb:
+    image: mongo:7
+
+    container_name: user-mongodb
+
+    volumes:
+      - user-mongodb-data:/data/db
+
+    networks:
+      - microservices
+
+
+  # ==========================================
+  # PRODUCT SERVICE
+  # ==========================================
+
+  product-service:
+    image: microservices/product-service:latest
+
+    build:
+      context: ./services/product-service
+
+    container_name: product-service
+
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@product-postgres:5432/productsdb
+
+    ports:
+      - "3002:3002"
+
+    depends_on:
+      - product-postgres
+
+    networks:
+      - microservices
+
+
+  product-postgres:
+    image: postgres:16
+
+    container_name: product-postgres
+
+    environment:
+      POSTGRES_DB: productsdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    volumes:
+      - product-postgres-data:/var/lib/postgresql/data
+
+    networks:
+      - microservices
+
+
+  # ==========================================
+  # ORDER SERVICE
+  # ==========================================
+
+  order-service:
+    image: microservices/order-service:latest
+
+    build:
+      context: ./services/order-service
+
+    container_name: order-service
+
+    ports:
+      - "3003:3003"
+
+    depends_on:
+      - order-mysql
+
+    networks:
+      - microservices
+
+
+  order-mysql:
+    image: mysql:8.4
+
+    container_name: order-mysql
+
+    environment:
+      MYSQL_DATABASE: ordersdb
+      MYSQL_USER: orders
+      MYSQL_PASSWORD: orders123
+      MYSQL_ROOT_PASSWORD: root123
+
+    volumes:
+      - order-mysql-data:/var/lib/mysql
+      - ./database/order-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    networks:
+      - microservices
+
+
+  # ==========================================
+  # PAYMENT SERVICE
+  # ==========================================
+
+  payment-service:
+    image: microservices/payment-service:latest
+
+    build:
+      context: ./services/payment-service
+
+    container_name: payment-service
+
+    environment:
+      POSTGRES_CONNECTION: Host=payment-postgres;Port=5432;Database=paymentsdb;Username=postgres;Password=postgres
+
+    ports:
+      - "3004:3004"
+
+    depends_on:
+      - payment-postgres
+
+    networks:
+      - microservices
+
+
+  payment-postgres:
+    image: postgres:16
+
+    container_name: payment-postgres
+
+    environment:
+      POSTGRES_DB: paymentsdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    volumes:
+      - payment-postgres-data:/var/lib/postgresql/data
+      - ./database/payment-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    networks:
+      - microservices
+
+
+  # ==========================================
+  # INVENTORY SERVICE
+  # ==========================================
+
+  inventory-service:
+    image: microservices/inventory-service:latest
+
+    build:
+      context: ./services/inventory-service
+
+    container_name: inventory-service
+
+    environment:
+      MONGODB_URI: mongodb://inventory-mongodb:27017
+
+    ports:
+      - "3005:3005"
+
+    depends_on:
+      - inventory-mongodb
+
+    networks:
+      - microservices
+
+
+  inventory-mongodb:
+    image: mongo:7
+
+    container_name: inventory-mongodb
+
+    volumes:
+      - inventory-mongodb-data:/data/db
+
+    networks:
+      - microservices
+
+
+  # ==========================================
+  # REVIEW SERVICE
+  # ==========================================
+
+  review-service:
+    image: microservices/review-service:latest
+
+    build:
+      context: ./services/review-service
+
+    container_name: review-service
+
+    environment:
+      MYSQL_HOST: review-mysql
+      MYSQL_USER: reviews
+      MYSQL_PASSWORD: reviews123
+      MYSQL_DATABASE: reviewsdb
+
+    ports:
+      - "3006:3006"
+
+    depends_on:
+      - review-mysql
+
+    networks:
+      - microservices
+
+
+  review-mysql:
+    image: mysql:8.4
+
+    container_name: review-mysql
+
+    environment:
+      MYSQL_DATABASE: reviewsdb
+      MYSQL_USER: reviews
+      MYSQL_PASSWORD: reviews123
+      MYSQL_ROOT_PASSWORD: root123
+
+    volumes:
+      - review-mysql-data:/var/lib/mysql
+      - ./database/review-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    networks:
+      - microservices
+
+
+  # ==========================================
+  # NOTIFICATION SERVICE
+  # ==========================================
+
+  notification-service:
+    image: microservices/notification-service:latest
+
+    build:
+      context: ./services/notification-service
+
+    container_name: notification-service
+
+    environment:
+      REDIS_URL: redis://notification-redis:6379
+
+    ports:
+      - "3007:3007"
+
+    depends_on:
+      - notification-redis
+
+    networks:
+      - microservices
+
+
+  notification-redis:
+    image: redis:7-alpine
+
+    container_name: notification-redis
+
+    volumes:
+      - notification-redis-data:/data
+
+    networks:
+      - microservices
+
+
+# ==========================================
+# VOLUMES
+# ==========================================
+
+volumes:
+
+  user-mongodb-data:
+
+  product-postgres-data:
+
+  order-mysql-data:
+
+  payment-postgres-data:
+
+  inventory-mongodb-data:
+
+  review-mysql-data:
+
+  notification-redis-data:
+
+
+# ==========================================
+# NETWORK
+# ==========================================
+
+networks:
+
+  microservices:
+    driver: bridge
